@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit - EarnPro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #e2136e; --bg: #05070a; --card: #1e293b; --text: #f8fafc; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        
+        .deposit-card { background: var(--card); padding: 20px; border-radius: 20px; width: 100%; max-width: 400px; border: 1px solid rgba(226, 19, 110, 0.2); margin-bottom: 20px; }
+        .header h2 { margin: 0; font-size: 20px; color: var(--primary); text-align: center; }
+
+        .qr-section { text-align: center; margin: 15px 0; background: #fff; padding: 10px; border-radius: 12px; width: fit-content; margin-left: auto; margin-right: auto; display: block; }
+        .qr-section img { width: 150px; height: 150px; }
+
+        .input-group { margin-bottom: 12px; text-align: left; }
+        .input-group label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; outline: none; }
+
+        .submit-btn { width: 100%; padding: 14px; background: var(--primary); border: none; color: white; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .submit-btn:disabled { background: #475569; cursor: not-allowed; }
+        
+        .history-section { width: 100%; max-width: 400px; background: var(--card); border-radius: 20px; padding: 15px; border: 1px solid #334155; }
+        .history-section h4 { margin: 0 0 10px 0; font-size: 15px; color: #38bdf8; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+        th { color: #64748b; padding: 8px; border-bottom: 1px solid #334155; }
+        td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .status-pending { color: #fbbf24; font-weight: bold; }
+        .status-success { color: #22c55e; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="deposit-card">
+        <div class="header"><h2>ডিপোজিট রিকোয়েস্ট</h2></div>
+        
+        <div class="qr-section">
+            <img src="https://i.ibb.co.com/wF17BWs7/b-Kash-Merchant-QR-01829036089-2026-03-21-21-56-13-2.png">
+            <p style="color:#000; font-size:10px; margin:5px 0 0 0;">Scan to Pay</p>
+        </div>
+
+        <div class="input-group">
+            <label>টাকার পরিমাণ (মিনিমাম ৫০৳)</label>
+            <input type="number" id="amount" placeholder="৫০০">
+        </div>
+        <div class="input-group">
+            <label>Transaction ID (TrxID)</label>
+            <input type="text" id="trx" placeholder="8NXXXXXXXX">
+        </div>
+
+        <button class="submit-btn" id="subBtn">সাবমিট করুন</button>
+        <button onclick="location.href='dashboard.html'" style="background:none; border:none; color:#94a3b8; margin-top:10px; cursor:pointer; width:100%; font-size:13px;">ফিরে যান</button>
+    </div>
+
+    <div class="history-section">
+        <h4><i class="fas fa-history"></i> আপনার ডিপোজিট লিস্ট</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>সময়</th>
+                    <th>পরিমাণ</th>
+                    <th>স্ট্যাটাস</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, get } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyDqG0TFBK-0ZM5IjTwU4VC39esnCDsShI0",
+        databaseURL: "https://trounament-d8110-default-rtdb.firebaseio.com" 
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const session = localStorage.getItem('session'); // ইউজারের UID (Firebase UID)
+
+    if(!session) window.location.href = 'index.html';
+
+    // ১. ইউজারের নাম ও ফোন সংগ্রহ করা
+    let uName = "User";
+    let uPhone = "N/A";
+    onValue(ref(db, 'users/' + session), (snap) => {
+        if(snap.exists()) {
+            uName = snap.val().name || "User";
+            uPhone = snap.val().phone || "N/A";
+        }
+    });
+
+    // ২. ডিপোজিট সাবমিট করা (পেন্ডিং চেক সহ)
+    document.getElementById('subBtn').onclick = async () => {
+        const amt = parseInt(document.getElementById('amount').value);
+        const trxID = document.getElementById('trx').value.trim();
+        const subBtn = document.getElementById('subBtn');
+
+        if(isNaN(amt) || amt < 50 || trxID.length < 5) {
+            return alert("সঠিক পরিমাণ (মিনিমাম ৫০৳) ও TrxID দিন!");
+        }
+
+        subBtn.innerText = "চেক করা হচ্ছে...";
+        subBtn.disabled = true;
+
+        try {
+            // চেক করা হচ্ছে কোনো রিকোয়েস্ট পেন্ডিং আছে কিনা
+            const depSnap = await get(ref(db, 'depositRequests'));
+            let hasPending = false;
+            
+            if(depSnap.exists()) {
+                const requests = depSnap.val();
+                for(let key in requests) {
+                    if(requests[key].uid === session && requests[key].status === "pending") {
+                        hasPending = true;
+                        break;
+                    }
+                }
+            }
+
+            if(hasPending) {
+                alert("আপনার একটি ডিপোজিট রিকোয়েস্ট অলরেডি পেন্ডিং আছে! সেটি শেষ না হওয়া পর্যন্ত নতুন রিকোয়েস্ট দিতে পারবেন না।");
+                subBtn.innerText = "সাবমিট করুন";
+                subBtn.disabled = false;
+                return;
+            }
+
+            // নতুন রিকোয়েস্ট সাবমিট
+            const newDepoRef = push(ref(db, 'depositRequests'));
+            await set(newDepoRef, {
+                uid: session, // অ্যাডমিন প্যানেলের জন্য মাস্ট
+                userPhone: uPhone,
+                userName: uName,
+                amount: amt,
+                trx: trxID,
+                status: "pending",
+                time: new Date().toLocaleString('en-US')
+            });
+
+            alert("আবেদন জমা হয়েছে!");
+            document.getElementById('amount').value = "";
+            document.getElementById('trx').value = "";
+            subBtn.innerText = "সাবমিট করুন";
+            subBtn.disabled = false;
+
+        } catch (err) {
+            alert("ত্রুটি হয়েছে! আবার চেষ্টা করুন।");
+            subBtn.innerText = "সাবমিট করুন";
+            subBtn.disabled = false;
+        }
+    };
+
+    // ৩. ইউজারের নিজের লিস্ট দেখানো (UID দিয়ে ফিল্টার)
+    onValue(ref(db, 'depositRequests'), (snap) => {
+        const body = document.getElementById('historyBody');
+        body.innerHTML = "";
+        if(!snap.exists()) return;
+
+        snap.forEach(child => {
+            const data = child.val();
+            // ইউজারের UID দিয়ে ডাটা ফিল্টার
+            if(data.uid === session) {
+                const statusText = data.status === 'pending' ? 'Pending' : 'Success';
+                const row = `<tr>
+                    <td>${data.time}</td>
+                    <td>৳${data.amount}</td>
+                    <td class="status-${data.status}">${statusText}</td>
+                </tr>`;
+                body.innerHTML = row + body.innerHTML;
+            }
+        });
+    });
+</script>
+</body>
+</html>

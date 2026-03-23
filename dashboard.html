@@ -1,0 +1,356 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Mining | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --accent: #7000ff;
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.8);
+            --gold: #fbbf24;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        body {
+            background: var(--bg);
+            color: #e2e8f0;
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background: radial-gradient(circle at top right, #1e1b4b 0%, #020617 100%);
+            min-height: 100vh;
+        }
+
+        /* --- Header Section --- */
+        .header {
+            padding: 25px 0;
+            text-align: center;
+        }
+        .header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            letter-spacing: 3px;
+            background: linear-gradient(to right, #fff, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        /* --- Balance Display --- */
+        .wallet-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            max-width: 480px;
+            margin: 0 auto 30px auto;
+        }
+        .wallet-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .wallet-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+        }
+        .main-wallet::before { background: var(--primary); }
+        .hold-wallet::before { background: var(--gold); }
+
+        .wallet-label { font-size: 11px; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; }
+        .wallet-value { font-size: 18px; font-weight: 700; margin-top: 5px; font-family: 'Orbitron'; }
+        .main-wallet .wallet-value { color: var(--primary); }
+        .hold-wallet .wallet-value { color: var(--gold); }
+    
+    .info-box {
+    background: rgba(0, 242, 254, 0.05);
+    border: 1px dashed var(--primary);
+    border-radius: 15px;
+    padding: 12px;
+    margin: -10px auto 25px auto;
+    max-width: 450px;
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+        /* --- Bot Grid --- */
+        .bot-grid {
+            display: grid;
+            gap: 30px;
+            max-width: 480px;
+            margin: 0 auto;
+            padding-bottom: 50px;
+        }
+
+        /* --- Enhanced Bot Card --- */
+        .bot-container {
+            background: var(--card-bg);
+            border-radius: 28px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+        .bot-container:active { transform: scale(0.98); }
+
+        .bot-icon-box {
+            position: absolute; top: -20px; right: 25px;
+            width: 55px; height: 55px;
+            background: linear-gradient(135deg, var(--accent), var(--secondary));
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; color: #fff;
+            box-shadow: 0 10px 20px rgba(112, 0, 255, 0.3);
+            z-index: 5;
+        }
+
+        .bot-name { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+        .bot-level { font-size: 10px; color: var(--primary); background: rgba(0, 242, 254, 0.1); padding: 2px 8px; border-radius: 5px; }
+
+        .mining-visual { height: 3px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 20px 0; overflow: hidden; }
+        .mining-bar { height: 100%; width: 40%; background: var(--primary); box-shadow: 0 0 15px var(--primary); animation: scan 2s infinite ease-in-out; }
+        @keyframes scan { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .stat-item { background: rgba(255,255,255,0.02); padding: 10px; border-radius: 12px; text-align: center; }
+        .stat-item span { display: block; }
+        .s-label { font-size: 10px; color: #64748b; text-transform: uppercase; }
+        .s-value { font-size: 15px; font-weight: 700; color: #f8fafc; }
+
+        /* --- Timer Section --- */
+        .timer-display {
+            background: rgba(0,0,0,0.3);
+            border-radius: 18px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-left: 3px solid var(--primary);
+        }
+        .timer-text { font-family: 'Orbitron'; font-size: 22px; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+        /* --- Action Buttons --- */
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 18px;
+            border: none;
+            font-family: 'Rajdhani';
+            font-weight: 700;
+            font-size: 16px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+            letter-spacing: 1px;
+        }
+        .btn-ready {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: #020617;
+            box-shadow: 0 8px 20px rgba(0, 242, 254, 0.2);
+        }
+        .btn-locked { background: #1e293b; color: #475569; }
+
+        .status-msg { font-size: 11px; text-align: center; margin-top: 12px; color: #94a3b8; }
+
+        /* --- Utility --- */
+        .pulse-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; position: absolute; top: 15px; left: 15px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <h2><i class="fas fa-atom"></i> QUANTUM CORE</h2>
+    </header>
+
+    <div class="wallet-container">
+        <div class="wallet-card main-wallet">
+            <span class="wallet-label">Main Balance</span>
+            <div class="wallet-value" id="mainBal">৳0.00</div>
+        </div>
+        <div class="wallet-card hold-wallet">
+            <span class="wallet-label">Holding</span>
+            <div class="wallet-value" id="holdBal">৳0.00</div>
+        </div>
+    </div>
+    <div class="info-box">
+    <i class="fas fa-shield-alt" style="color: var(--primary); font-size: 18px;"></i>
+    <span>আপনার ইনভেস্টমেন্টের নিরাপত্তা এবং সিস্টেমের স্থায়িত্ব নিশ্চিত করতে প্রতিদিনের ইনকাম 'হোল্ডিং ব্যালেন্সে' জমা হয়। বটের মেয়াদ শেষ হলে সব টাকা মেইন ব্যালেন্সে চলে যাবে।</span>
+</div>
+
+    <div id="botList" class="bot-grid">
+        <div style="text-align: center; padding: 40px; opacity: 0.5;">
+            <i class="fas fa-spinner fa-spin"></i> Initializing Neural Link...
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, onValue, get, update } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDqG0TFBK-0ZM5IjTwU4VC39esnCDsShI0",
+        databaseURL: "https://trounament-d8110-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const session = localStorage.getItem('session');
+
+    if(!session) window.location.href = "index.html";
+
+    let activeIntervals = {};
+
+    onValue(ref(db, 'users/' + session), async (snapshot) => {
+        const user = snapshot.val() || {};
+        const myBots = user.myBots || {};
+        
+        // Update Balances
+        document.getElementById('mainBal').innerText = `৳${(user.balance || 0).toFixed(2)}`;
+        document.getElementById('holdBal').innerText = `৳${(user.holdingBalance || 0).toFixed(2)}`;
+
+        const container = document.getElementById('botList');
+        
+        // Cleanup old intervals
+        Object.values(activeIntervals).forEach(clearInterval);
+        activeIntervals = {};
+        container.innerHTML = "";
+        
+        if (Object.keys(myBots).length === 0) {
+            container.innerHTML = `<p style="text-align:center; color:#475569; padding:50px; font-weight:bold;">No Active Units Found</p>`;
+            return;
+        }
+
+        for (const botKey in myBots) {
+            const bot = myBots[botKey];
+            const qSnap = await get(ref(db, 'queues/' + bot.level));
+            const currentQueueUID = qSnap.val() ? qSnap.val().uid : null;
+
+            // Render Bot Card
+            const botCard = buildBotUI(botKey, bot);
+            container.appendChild(botCard);
+
+            // Start Logic
+            handleBotLogic(botKey, bot, currentQueueUID);
+        }
+    });
+
+    function buildBotUI(key, bot) {
+        const html = `
+            <div class="bot-container">
+                <div class="pulse-dot"></div>
+                <div class="bot-icon-box"><i class="fas fa-bolt"></i></div>
+                <div class="bot-name">${bot.name} <span class="bot-level">${bot.level}</span></div>
+                
+                <div class="mining-visual"><div class="mining-bar"></div></div>
+                
+                <div class="stats-grid">
+                    <div class="stat-item"><span class="s-label">Daily Yield</span><span class="s-value">৳${bot.daily}</span></div>
+                    <div class="stat-item"><span class="s-label">Total Earned</span><span class="s-value">৳${(bot.totalProfit || 0).toFixed(2)}</span></div>
+                </div>
+
+                <div class="timer-display">
+                    <div class="s-label" id="label-${key}">Syncing...</div>
+                    <div class="timer-text" id="timer-${key}">00:00:00</div>
+                </div>
+
+                <button id="btn-${key}" class="action-btn btn-locked" disabled>Processing...</button>
+                <div class="status-msg" id="msg-${key}">Establishing node connection...</div>
+            </div>
+        `;
+        return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
+    }
+
+    function handleBotLogic(key, bot, queueUID) {
+        const timerEl = document.getElementById(`timer-${key}`);
+        const labelEl = document.getElementById(`label-${key}`);
+        const msgEl = document.getElementById(`msg-${key}`);
+        const btn = document.getElementById(`btn-${key}`);
+
+        activeIntervals[key] = setInterval(() => {
+            const now = Date.now();
+            const totalExpiry = bot.startTime + (bot.days * 24 * 60 * 60 * 1000);
+            const nextClaimTime = (bot.lastClaimTime || bot.startTime) + (24 * 60 * 60 * 1000);
+
+            if (now < nextClaimTime) {
+                labelEl.innerText = "Recharge Phase";
+                timerEl.innerText = formatTime(nextClaimTime - now);
+                msgEl.innerText = "Quantum core is recharging power.";
+                btn.className = "action-btn btn-locked";
+                btn.innerText = "Mining...";
+            } 
+            else if (now >= totalExpiry && queueUID === session) {
+                labelEl.innerText = "Neural Lock";
+                timerEl.innerText = "WAITING";
+                msgEl.innerText = "মেয়াদ শেষ! নতুন বায়ারের জন্য অপেক্ষা করুন।";
+                btn.className = "action-btn btn-locked";
+                btn.innerText = "Queue Locked";
+            } 
+            else {
+                const isFinal = (now >= totalExpiry);
+                labelEl.innerText = "Core Optimized";
+                timerEl.innerText = "READY";
+                msgEl.innerText = isFinal ? "Buyer found! Move all funds to Main Balance." : "Collect today's yield to holding.";
+                btn.className = "action-btn btn-ready";
+                btn.disabled = false;
+                btn.innerText = isFinal ? "Final Settlement" : "Collect Yield";
+                btn.onclick = () => claimReward(key, bot.daily, isFinal);
+            }
+        }, 1000);
+    }
+
+    function formatTime(ms) {
+        let h = Math.floor(ms / 3600000);
+        let m = Math.floor((ms % 3600000) / 60000);
+        let s = Math.floor((ms % 60000) / 1000);
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    window.claimReward = async (botKey, amount, isFinal) => {
+        const btn = document.getElementById(`btn-${botKey}`);
+        btn.disabled = true;
+        btn.innerText = "Synchronizing...";
+        
+        try {
+            const uSnap = await get(ref(db, 'users/' + session));
+            const uData = uSnap.val();
+            const updates = {};
+            
+            if (isFinal) {
+                const total = (uData.holdingBalance || 0) + amount;
+                updates[`users/${session}/balance`] = (uData.balance || 0) + total;
+                updates[`users/${session}/holdingBalance`] = 0;
+                updates[`users/${session}/myBots/${botKey}`] = null;
+                alert(`Success! ৳${total.toFixed(2)} moved to Main Balance.`);
+            } else {
+                updates[`users/${session}/holdingBalance`] = (uData.holdingBalance || 0) + amount;
+                updates[`users/${session}/myBots/${botKey}/lastClaimTime`] = Date.now();
+                updates[`users/${session}/myBots/${botKey}/totalProfit`] = (uData.myBots[botKey].totalProfit || 0) + amount;
+                alert(`৳${amount} added to Holding.`);
+            }
+
+            await update(ref(db), updates);
+        } catch (e) {
+            alert("Connection Failed!");
+            btn.disabled = false;
+        }
+    };
+</script>
+</body>
+</html>

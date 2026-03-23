@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdraw - EarnPro 3D</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #00f2fe; --bg: #0b1120; --card: #1e293b; --accent: #fbbf24; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; padding: 20px; margin: 0; }
+        
+        .wd-card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid rgba(0,242,254,0.2); margin-bottom: 30px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; outline: none; }
+        input:focus { border-color: var(--primary); }
+        
+        .wd-btn { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .wd-btn:disabled { background: #475569; cursor: not-allowed; }
+        
+        .charge-info { background: rgba(251, 191, 36, 0.1); padding: 10px; border-radius: 10px; margin-top: 15px; font-size: 13px; border: 1px dashed var(--accent); display: none; }
+
+        /* History Table */
+        .history-box { background: var(--card); border-radius: 20px; padding: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #334155; font-size: 14px; }
+        .status-pending { color: var(--accent); font-weight: bold; }
+        .status-successful { color: #2dd4bf; font-weight: bold; }
+        .status-rejected { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="wd-card">
+        <h2 style="text-align:center; color:var(--primary); margin-top:0;">টাকা উত্তোলন</h2>
+        <p style="text-align:center; font-size:12px; color:#94a3b8;">সর্বনিম্ন উইথড্র ৫০০৳ | চার্জ ২%</p>
+        
+        <div class="input-group">
+            <label>আপনার নাম</label>
+            <input type="text" id="uName" readonly style="background: #1e293b; color:#94a3b8;">
+        </div>
+
+        <div class="input-group">
+            <label>পদ্ধতি নির্বাচন করুন</label>
+            <select id="method">
+                <option value="Bkash">বিকাশ (পারসোনাল)</option>
+                <option value="Nagad">নগদ (পারসোনাল)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>পারসোনাল নম্বর</label>
+            <input type="number" id="wdNumber" placeholder="017xxxxxxxx">
+        </div>
+
+        <div class="input-group">
+            <label>টাকার পরিমাণ (৳)</label>
+            <input type="number" id="amount" placeholder="৫০০ বা তার বেশি">
+        </div>
+
+        <div id="chargeBox" class="charge-info">
+            পাবেন: <span id="netAmount" style="color:var(--primary); font-weight:bold;">৳০</span> 
+            (চার্জ: <span id="feeAmount" style="color:var(--accent);">৳০</span>)
+        </div>
+
+        <button class="wd-btn" id="reqBtn">উইথড্র রিকোয়েস্ট দিন</button>
+    </div>
+
+    <div class="history-box">
+        <h4 style="margin:0 0 15px 0;"><i class="fas fa-history"></i> উইথড্র হিস্ট্রি</h4>
+        <div id="wdHistory">
+            <p style="text-align:center; color:#94a3b8; font-size:13px;">লোডিং...</p>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, push, get, update } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDqG0TFBK-0ZM5IjTwU4VC39esnCDsShI0",
+        databaseURL: "https://trounament-d8110-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const session = localStorage.getItem('session');
+
+    if(!session) window.location.href = "login.html";
+
+    let userBalance = 0;
+    let userName = "";
+
+    // ১. ইউজারের ডাটা এবং ব্যালেন্স চেক
+    onValue(ref(db, 'users/' + session), (snap) => {
+        if(snap.exists()){
+            const u = snap.val();
+            userBalance = Number(u.balance) || 0;
+            userName = u.name || "User";
+            document.getElementById('uName').value = userName;
+        }
+    });
+
+    // ২. রিয়েল টাইম চার্জ ক্যালকুলেশন
+    const amountInput = document.getElementById('amount');
+    amountInput.oninput = () => {
+        const val = parseFloat(amountInput.value);
+        const box = document.getElementById('chargeBox');
+        if(val >= 500) {
+            const fee = (val * 0.02);
+            const net = val - fee;
+            document.getElementById('feeAmount').innerText = "৳" + fee.toFixed(2);
+            document.getElementById('netAmount').innerText = "৳" + net.toFixed(2);
+            box.style.display = 'block';
+        } else {
+            box.style.display = 'none';
+        }
+    };
+
+    // ৩. উইথড্র রিকোয়েস্ট পাঠানো
+    document.getElementById('reqBtn').onclick = async () => {
+        const amount = parseFloat(amountInput.value);
+        const target = document.getElementById('wdNumber').value.trim();
+        const method = document.getElementById('method').value;
+
+        if(!amount || target.length < 10) return alert("সঠিক তথ্য দিন!");
+        if(amount < 500) return alert("সর্বনিম্ন ৫০০৳ উইথড্র করতে হবে।");
+        if(amount > userBalance) return alert("আপনার একাউন্টে পর্যাপ্ত ব্যালেন্স নেই।");
+
+        const fee = (amount * 0.02);
+        const finalToReceive = amount - fee;
+
+        if(confirm(`চার্জ কাটার পর আপনি ৳${finalToReceive.toFixed(2)} পাবেন। রিকোয়েস্ট দিবেন কি?`)) {
+            const btn = document.getElementById('reqBtn');
+            btn.disabled = true;
+            btn.innerText = "প্রসেসিং...";
+
+            try {
+                // মেইন ব্যালেন্স থেকে পুরো টাকা কাটা হবে
+                await update(ref(db, 'users/' + session), { 
+                    balance: userBalance - amount 
+                });
+
+                const newWdRef = push(ref(db, 'withdraws'));
+                await set(newWdRef, {
+                    uid: session,
+                    name: userName,
+                    phone: session, // আপনার সিস্টেমে সেশনই ফোন নম্বর হিসেবে ব্যবহৃত হচ্ছে
+                    targetNumber: target,
+                    method: method,
+                    amount: finalToReceive, // চার্জ বাদে টাকা (অ্যাডমিন এটিই দেখবে)
+                    originalAmount: amount, // রিজেক্ট হলে রিফান্ড করার জন্য
+                    charge: fee,
+                    status: "Pending",
+                    time: new Date().toLocaleString()
+                });
+
+                alert("উইথড্র রিকোয়েস্ট সফল হয়েছে!");
+                amountInput.value = "";
+                document.getElementById('wdNumber').value = "";
+                document.getElementById('chargeBox').style.display = 'none';
+            } catch (err) {
+                alert("ত্রুটি: আবার চেষ্টা করুন।");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "উইথড্র রিকোয়েস্ট দিন";
+            }
+        }
+    };
+
+    // ৪. উইথড্র হিস্ট্রি লোড
+    onValue(ref(db, 'withdraws'), (snap) => {
+        const historyDiv = document.getElementById('wdHistory');
+        historyDiv.innerHTML = "";
+        let hasData = false;
+
+        if(snap.exists()){
+            const data = snap.val();
+            const items = Object.values(data).reverse(); // নতুনগুলো উপরে দেখাবে
+
+            items.forEach(wd => {
+                if(wd.uid === session || wd.phone === session) {
+                    hasData = true;
+                    historyDiv.innerHTML += `
+                        <div class="history-item">
+                            <div>
+                                <b>${wd.method} - ৳${wd.amount}</b><br>
+                                <small style="color:#94a3b8;">${wd.targetNumber} | ${wd.time.split(',')[0]}</small>
+                            </div>
+                            <div class="status-${wd.status.toLowerCase()}">${wd.status}</div>
+                        </div>`;
+                }
+            });
+        }
+        if(!hasData) historyDiv.innerHTML = "<p style='text-align:center; font-size:12px; color:#94a3b8;'>কোনো রেকর্ড নেই</p>";
+    });
+</script>
+</body>
+</html>

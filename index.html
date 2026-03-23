@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EarnPro Max 3D - Ultimate Admin Control</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #38bdf8; --bg: #0f172a; --card: #1e293b; --accent: #2dd4bf; --gold: #fbbf24; --glass: rgba(255, 255, 255, 0.05); }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
+        .hidden { display: none !important; }
+
+        /* Rules Popup Styles */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10001; backdrop-filter: blur(8px); }
+        .rules-popup { 
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            width: 85%; max-width: 350px; background: var(--card); border: 1px solid var(--primary); 
+            padding: 25px; border-radius: 25px; z-index: 10002; box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+        }
+        .rules-popup.active { display: block; }
+        .rules-content { max-height: 250px; overflow-y: auto; text-align: left; font-size: 13px; color: #cbd5e1; line-height: 1.6; padding-right: 5px; }
+        .rules-content b { color: var(--primary); }
+        
+        /* Scrollbar for Rules */
+        .rules-content::-webkit-scrollbar { width: 4px; }
+        .rules-content::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        /* Live Popup */
+        .live-notify { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-120px); background: rgba(15, 23, 42, 0.9); border: 1px solid var(--primary); padding: 12px 20px; border-radius: 50px; display: flex; align-items: center; gap: 12px; z-index: 10000; transition: 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 10px 30px rgba(0,0,0,0.6); width: 85%; max-width: 380px; }
+        .live-notify.show { transform: translateX(-50%) translateY(0); }
+        .notify-content { font-size: 13px; color: #e2e8f0; }
+        .notify-content b { color: var(--primary); }
+
+        .app-container { padding: 15px; padding-bottom: 90px; }
+        .main-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 25px; border-radius: 25px; border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 20px; position: relative; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .balance-text { font-size: 32px; margin: 10px 0; color: #fff; text-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+        
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .lvl-card { background: var(--glass); padding: 15px; border-radius: 18px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .lvl-card h3 { font-size: 11px; margin: 0; color: var(--primary); text-transform: uppercase; }
+        .lvl-card p { font-size: 14px; margin: 5px 0 2px; font-weight: bold; }
+        .lvl-card span { font-size: 10px; color: #94a3b8; display: block; }
+
+        .leaderboard-row { background: rgba(30, 41, 59, 0.8); padding: 15px; margin: 12px 0; border-radius: 18px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.05); }
+
+        .auth-card { background: var(--card); padding: 30px; border-radius: 30px; text-align: center; max-width: 400px; margin: 50px auto; border: 1px solid #334155; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; outline: none; }
+        .btn-glow { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4); }
+
+        nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); display: flex; justify-content: space-around; padding: 15px; border-top: 1px solid #334155; backdrop-filter: blur(10px); z-index: 1000; }
+        nav div { text-align: center; color: #64748b; font-size: 11px; cursor: pointer; }
+        nav div i { font-size: 20px; display: block; margin-bottom: 4px; }
+        nav div.active { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div id="rulesOverlay" class="overlay" onclick="closeRules()"></div>
+    <div id="rulesPopup" class="rules-popup">
+        <h3 style="color: var(--primary); text-align: center; margin-top: 0;"><i class="fas fa-shield-alt"></i> অ্যাপের নিয়মাবলী</h3>
+        <div class="rules-content">
+            <p><b>১. একাউন্ট:</b> একটি ফোনে মাত্র একটি একাউন্ট অনুমোদিত। একাধিক একাউন্ট চালালে সব একাউন্ট ব্লক করা হবে।</p>
+            <p><b>২. এক্টিভেশন:</b> 200৳ পেমেন্ট করে সঠিক TrxID সাবমিট করুন। অ্যাডমিন আপনার পেমেন্ট চেক করে একাউন্ট সচল করবে।</p>
+            <p><b>৩. আয়:</b> প্রতিদিন মাইনিং অপশন থেকে বটের মাধ্যমে অটোমেটিক আয় হবে। ৩টি লেভেল পর্যন্ত রেফারেল কমিশন পাবেন।</p>
+            <p><b>৪. উইথড্র:</b> সর্বনিম্ন 500৳ হলে উত্তোলনের রিকোয়েস্ট দিতে পারবেন। পেমেন্ট ২৪ ঘণ্টার মধ্যে বিকাশ/নগদে চলে যাবে।</p>
+            <p><b>৫. নিরাপত্তা:</b> আপনার একাউন্টের পাসওয়ার্ড গোপন রাখুন। কোনো প্রকার অবৈধ কার্যক্রম ধরা পড়লে একাউন্ট বাতিল হবে।</p>
+        </div>
+        <button class="btn-glow" onclick="closeRules()" style="margin-top: 20px;">আমি সব বুঝেছি</button>
+    </div>
+
+    <div id="liveNotify" class="live-notify">
+        <i class="fas fa-bolt animate__animated animate__flash animate__infinite" style="color: var(--gold);"></i>
+        <div class="notify-content" id="notifyContent">সিস্টেম আপডেট হচ্ছে...</div>
+    </div>
+
+    <div class="app-container">
+        
+        <div id="authView" class="view">
+            <div class="auth-card animate__animated animate__fadeIn">
+                <h1 style="color: var(--primary);">EarnPro</h1>
+                <h2 style="color:yellow;">একাউন্ট খোলার পূ্র্বে অবশ্যই যে নাম্বর দিয়ে খুলবেন আর আপনার পাসওয়ার্ড টি মনে রাখবেন নয়তো আপনি একাউন্ট লগইন করতে পারবেন না।</h2>
+                <div id="regFields" class="hidden">
+                    <input type="text" id="rName" placeholder="আপনার নাম">
+                    <input type="text" id="rRefer" placeholder="রেফার কোড (BD2026)">
+                </div>
+                <input type="number" id="uPhone" placeholder="ফোন নম্বর">
+                <input type="password" id="uPass" placeholder="পাসওয়ার্ড">
+                <button class="btn-glow" id="authBtn">প্রবেশ করুন</button>
+                <p id="toggleText" style="cursor:pointer; margin-top:20px; color: var(--primary);">নতুন একাউন্ট খুলুন</p>
+                
+                <p onclick="showRules()" style="cursor:pointer; margin-top:15px; font-size:12px; color: #94a3b8; text-decoration: underline;">
+                    অ্যাপের নিয়ম ও গোপনীয়তা নীতি পড়ুন
+                </p>
+            </div>
+        </div>
+
+        <div id="homeView" class="view hidden">
+            <div class="main-card">
+                <small style="color: var(--primary);">AVAILABLE BALANCE</small>
+                <h1 id="totalBal" class="balance-text">৳ ০.০০</h1>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span>সক্রিয় ইনভেস্ট: <b id="investDisp" style="color: var(--gold);">৳ ০</b></span>
+                    <span>স্ট্যাটাস: <b style="color: var(--accent);">Active</b></span>
+                </div>
+            </div>
+            
+            <div class="grid-container">
+                <div class="lvl-card"><h3>Level 1</h3><p id="l1I">৳ ০</p><span id="l1Count">মেম্বার: ০</span></div>
+                <div class="lvl-card"><h3>Level 2</h3><p id="l2I">৳ ০</p><span id="l2Count">মেম্বার: ০</span></div>
+                <div class="lvl-card"><h3>Level 3</h3><p id="l3I">৳ ০</p><span id="l3Count">মেম্বার: ০</span></div>
+            </div>
+
+            <div class="main-card" style="text-align: center;">
+                <p style="font-size: 12px; color: #94a3b8;">আপনার রেফার কোড</p>
+                <div style="background: #0f172a; padding: 12px; border-radius: 12px; border: 1px solid #334155; display: flex; justify-content: space-between;">
+                    <span id="uMyCode" style="color: var(--primary); font-weight: bold;">-------</span>
+                    <i class="fas fa-copy" onclick="copyCode()" style="cursor:pointer;"></i>
+                </div>
+            </div> 
+            <div class="main-card" style="padding: 15px; margin-top: 10px; background: rgba(30, 41, 59, 0.5);">
+    <h3 style="color: var(--primary); font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-history animate__animated animate__swing animate__infinite"></i> 
+        সাম্প্রতিক পেমেন্ট হিস্ট্রি
+    </h3>
+    
+    <div id="paymentSlider" style="display: flex; overflow-x: auto; gap: 12px; padding-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none;">
+        </div>
+</div>
+
+<style>
+    /* স্লাইডারের কাস্টম স্টাইল */
+    #paymentSlider::-webkit-scrollbar { display: none; }
+    .proof-card {
+        min-width: 190px; 
+        background: var(--glass); 
+        border-radius: 18px; 
+        padding: 12px; 
+        border: 1px solid rgba(56, 189, 248, 0.1);
+        position: relative;
+    }
+    .proof-tag { 
+        font-size: 9px; 
+        padding: 2px 8px; 
+        border-radius: 5px; 
+        font-weight: bold; 
+        text-transform: uppercase;
+    }
+    .tag-bkash { background: #e2136e; color: white; }
+    .tag-nagad { background: #f7941d; color: white; }
+    .p-amt { color: var(--accent); font-size: 16px; font-weight: bold; margin: 5px 0; }
+    .p-details { font-size: 9.5px; color: #94a3b8; margin: 1px 0; font-family: monospace; }
+</style>
+        </div>
+
+        <div id="depoView" class="view hidden">
+            <div class="main-card" style="text-align: center;">
+                <h3 style="color: var(--primary);">একাউন্ট সক্রিয় করুন</h3>
+                
+                <div style="background: rgba(226, 19, 110, 0.1); padding: 15px; border-radius: 15px; border: 1px dashed var(--primary); margin-bottom: 20px;">
+                    <p style="font-size: 13px; text-align: left; color: #e2e8f0; line-height: 1.5;"> 
+                        <b>পেমেন্ট করার নিয়ম:</b><br>
+                        ১. বিকাশ অ্যাপের "পেমেন্ট" অপশনে যান।<br>
+                        ২. নিচের QR কোডটি স্ক্যান করুন।<br>
+                        ৩. পেমেন্টের পরিমাণ ১০০ টাকা দিন।<br>
+                        ৪. পেমেন্ট সফল হলে TrxID কপি করে নিচের বক্সে দিন।
+                    </p>
+                    <p style="font-size: 18px; color: var(--primary); margin-top: 10px;">ফি: <b id="joinFeeDisp">১০০</b> টাকা</p>
+                </div>
+
+                <div style="background: white; padding: 10px; border-radius: 15px; display: inline-block; margin-bottom: 20px;">
+                    <img src="https://i.ibb.co.com/wF17BWs7/b-Kash-Merchant-QR-01829036089-2026-03-21-21-56-13-2.png" style="width: 180px; height: 180px; display: block;">
+                    <p style="color: #000; font-size: 10px; font-weight: bold; margin-top: 5px;">Scan to Pay</p>
+                </div>
+
+                <div id="trxArea">
+                    <input type="text" id="trxId" placeholder="Transaction ID (TrxID)" style="text-align: center; letter-spacing: 2px;">
+                    <button class="btn-glow" id="subTrxBtn">সাবমিট করুন</button>
+                </div>
+
+                <div id="pendingBox" class="hidden" style="margin-top: 20px;">
+                    <i class="fas fa-history fa-spin" style="color: var(--gold); font-size: 24px;"></i>
+                    <p style="color: var(--gold); margin-top: 10px;">আপনার পেমেন্ট যাচাই করা হচ্ছে... <br> <small>(১০-৩০ মিনিট সময় লাগতে পারে)</small></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="leaderView" class="view hidden">
+            <div class="main-card">
+                <h3 style="text-align:center;">লিডারবোর্ড</h3>
+                <div id="leaderboardList"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <nav id="bottomNav" class="hidden">
+        <div onclick="showPage('homeView')" class="active"><i class="fas fa-home"></i><span>হোম</span></div>
+        <div onclick="window.location.href='mining_shop.html'"><i class="fas fa-microchip"></i><span>শপ</span></div>
+        <div onclick="showPage('leaderView')"><i class="fas fa-trophy"></i><span>লিডার</span></div>
+        <div onclick="window.location.href='profile.html'"><i class="fas fa-user"></i><span>প্রোফাইল</span></div>
+    </nav>
+
+    <script type="module" src="script.js"></script>
+    
+    <script>
+        // Rules Popup Control
+        window.showRules = () => {
+            document.getElementById('rulesOverlay').style.display = 'block';
+            document.getElementById('rulesPopup').classList.add('active');
+        };
+
+        window.closeRules = () => {
+            document.getElementById('rulesOverlay').style.display = 'none';
+            document.getElementById('rulesPopup').classList.remove('active');
+        };
+    </script>
+</body>
+</html>

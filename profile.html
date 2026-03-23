@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Mining App Layout</title>
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-red: #ff4757; /* লগআউট এর জন্য */
+            --dark-bg: #0f111a;
+            --btn-bg: #1a1c26;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* বাটনগুলোর মাঝে দূরত্ব */
+        }
+    
+    nav { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    background: rgba(15, 23, 42, 0.95); 
+    display: flex; 
+    justify-content: space-around; 
+    padding: 15px; 
+    border-top: 1px solid #334155; 
+    backdrop-filter: blur(10px); 
+    z-index: 1000; 
+}
+
+nav div { 
+    text-align: center; 
+    color: #64748b; 
+    font-size: 11px; 
+    cursor: pointer; 
+    transition: 0.3s;
+}
+
+nav div i { 
+    font-size: 20px; 
+    display: block; 
+    margin-bottom: 4px; 
+}
+
+/* যে পেজে থাকবেন সেটার কালার হাইলাইট হবে */
+nav div.active { 
+    color: #38bdf8; 
+}
+
+/* মোবাইল রেসপন্সিভ প্যাডিং */
+.app-container {
+    padding-bottom: 80px; /* ট্যাব বারের জন্য নিচে জায়গা রাখা */
+}
+
+        /* ৩ডি বাটন ডিজাইন - সবগুলোর জন্য একই */
+        .custom-btn {
+            position: relative;
+            padding: 22px;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: white;
+            text-decoration: none;
+            background: linear-gradient(145deg, #1e212d, #11131a);
+            border: 2px solid var(--neon-blue);
+            border-radius: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6), 
+                        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        /* লগআউট বাটনের বিশেষ স্টাইল */
+        .logout-btn {
+            border-color: var(--neon-red);
+            margin-top: 10px; /* একটু গ্যাপ বাড়ানোর জন্য */
+        }
+
+        /* মাউস হোভার বা ক্লিক করলে ইফেক্ট */
+        .custom-btn:hover {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            transform: translateY(-3px);
+        }
+
+        .logout-btn:hover {
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+        }
+
+        .custom-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        /* আইকন স্টাইল */
+        .icon {
+            font-size: 24px;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <nav id="bottomNav">
+    <div onclick="window.location.href='index.html'"><i class="fas fa-home"></i><span>হোম</span></div>
+    <div onclick="window.location.href='mining_shop.html'"><i class="fas fa-microchip"></i><span>শপ</span></div>
+     <div onclick="window.location.href='profile.html'"><i class="fas fa-user"></i><span>প্রোফাইল</span></div>
+</nav>
+
+    <div class="container">
+        <a href="janina.html" class="custom-btn">
+            <span class="icon">🛡️</span> Rules & Privacy
+        </a>
+        
+        <a href="withdraw.html" class="custom-btn">
+            <span class="icon">📤</span> WITHDRAW
+        </a>
+        
+        <a href="deposit.html" class="custom-btn">
+            <span class="icon">📥</span> DEPOSIT
+        </a>
+
+        <a href="#" class="custom-btn logout-btn" onclick="logoutUser()">
+            <span class="icon">🔌</span> LOGOUT
+        </a>
+    </div>
+
+    <script>
+        function logoutUser() {
+            if(confirm("আপনি কি নিশ্চিত যে লগআউট করতে চান?")) {
+                localStorage.clear(); // সেশন মুছে ফেলা
+                window.location.href = "index.html"; // লগইন পেজে পাঠিয়ে দেওয়া
+            }
+        }
+    </script>
+
+</body>
+</html>

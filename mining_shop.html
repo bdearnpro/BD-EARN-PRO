@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mining Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #38bdf8; --bg: #0b1120; --card: #1e293b; --gold: #ffd700; --accent: #00f2fe; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; padding-bottom: 100px; }
+        
+        .balance-card { background: var(--card); padding: 25px; border-radius: 20px; text-align: center; border: 1px solid var(--primary); margin-bottom: 25px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); }
+        .balance-card h2 { font-size: 28px; margin: 10px 0; color: var(--accent); }
+        
+        .bot-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 20px; position: relative; transition: 0.3s; }
+        .bot-card:hover { border-color: var(--primary); transform: translateY(-5px); }
+        
+        .buy-btn { background: var(--gold); border: none; padding: 14px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; transition: 0.3s; color: #000; font-size: 16px; margin-top: 10px; }
+        .buy-btn:active { transform: scale(0.95); }
+        .owned-btn { background: #2dd4bf !important; color: #000; }
+        
+        .req-tag { font-size: 11px; background: #ef4444; padding: 4px 10px; border-radius: 5px; position: absolute; top: 12px; right: 12px; font-weight: bold; }
+
+        /* বটম নেভিগেশন */
+        nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); display: flex; justify-content: space-around; padding: 15px; border-top: 1px solid #334155; backdrop-filter: blur(10px); z-index: 1000; }
+        nav div { text-align: center; color: #64748b; font-size: 11px; cursor: pointer; transition: 0.3s; }
+        nav div i { font-size: 20px; display: block; margin-bottom: 4px; }
+        nav div.active { color: var(--primary); }
+
+        #botMarket { min-height: 200px; }
+    </style>
+</head>
+<body>
+
+    <div class="balance-card">
+        <small style="color: #94a3b8;">আপনার মেইন ব্যালেন্স</small>
+        <h2 id="mainBal">৳ 0.00</h2>
+        <small id="refCountText" style="color:var(--primary); font-weight: bold;">রেফার করা সদস্য: ০ জন</small>
+    </div>
+
+    <div id="botMarket">
+        <p style="text-align:center; color: #64748b;">মার্কেট লোড হচ্ছে...</p>
+    </div>
+
+    <nav id="bottomNav">
+        <div onclick="window.location.href='index.html'"><i class="fas fa-home"></i><span>হোম</span></div>
+        <div onclick="window.location.href='mining_shop.html'" class="active"><i class="fas fa-microchip"></i><span>শপ</span></div>
+        <div onclick="window.location.href='profile.html'"><i class="fas fa-user"></i><span>প্রোফাইল</span></div>
+    </nav>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, onValue, get, update, set } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDqG0TFBK-0ZM5IjTwU4VC39esnCDsShI0",
+        databaseURL: "https://trounament-d8110-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const session = localStorage.getItem('session');
+
+    if(!session) window.location.href = "index.html";
+
+    // --- ১. ইউজার ডাটা এবং রেফার চেক ---
+    onValue(ref(db, 'users/' + session), async (uSnap) => {
+        const u = uSnap.val() || {};
+        document.getElementById('mainBal').innerText = "৳ " + (u.balance || 0).toFixed(2);
+        
+        const allUsersSnap = await get(ref(db, 'users'));
+        let myRefCount = 0;
+        allUsersSnap.forEach(child => {
+            if(child.val().referredBy === session) myRefCount++;
+        });
+        document.getElementById('refCountText').innerText = "রেফার করা সদস্য: " + myRefCount + " জন";
+
+        // --- ২. বট মার্কেট রেন্ডার ---
+        onValue(ref(db, 'mining_bots'), (bSnap) => {
+            const market = document.getElementById('botMarket');
+            market.innerHTML = "";
+            
+            bSnap.forEach((child) => {
+                const bot = child.val();
+                const bId = child.key;
+                const isOwned = (u.myBots && u.myBots[bId]) ? true : false;
+                const reqRefer = bot.reqRefer || 0;
+
+                const botCard = document.createElement('div');
+                botCard.className = "bot-card";
+                botCard.innerHTML = `
+                    ${reqRefer > 0 ? `<span class="req-tag">প্রয়োজন ${reqRefer} রেফার</span>` : ''}
+                    <h3>${bot.name}</h3>
+                    <h2 style="color:var(--gold)">৳ ${bot.price}</h2>
+                    <p style="font-size:13px; color:#94a3b8;">লেভেল: ${bot.level} | দৈনিক আয়: ৳${bot.daily}</p>
+                    <button class="buy-btn ${isOwned ? 'owned-btn' : ''}" id="btn-${bId}">
+                        ${isOwned ? 'ড্যাশবোর্ড দেখুন' : 'বট কিনুন'}
+                    </button>
+                `;
+                market.appendChild(botCard);
+
+                // বাটনে ক্লিক হ্যান্ডলার
+                document.getElementById(`btn-${bId}`).onclick = () => {
+                    handleAction(bId, bot, isOwned, myRefCount, u.balance);
+                };
+            });
+        });
+    });
+
+    // --- ৩. বট কেনা বা ড্যাশবোর্ডে যাওয়ার ফাংশন ---
+    async function handleAction(bId, bot, isOwned, currentRef, currentBalance) {
+        // যদি কেনা থাকে, সরাসরি ড্যাশবোর্ডে পাঠাবে
+        if(isOwned) {
+            window.location.href = 'dashboard.html';
+            return;
+        }
+
+        // রেফার শর্ত চেক
+        if(currentRef < bot.reqRefer) {
+            alert(`দুঃখিত! এই বটটি কিনতে কমপক্ষে ${bot.reqRefer} টি রেফার লাগবে। আপনার আছে ${currentRef} টি।`);
+            return;
+        }
+
+        // ব্যালেন্স চেক
+        if(currentBalance < bot.price) {
+            alert("আপনার ব্যালেন্স নেই! দয়া করে রিচার্জ করুন।");
+            return;
+        }
+
+        // কেনা কনফার্মেশন
+        if(confirm(`${bot.name} কিনতে চান? আপনার ব্যালেন্স থেকে ৳${bot.price} কাটা হবে।`)) {
+            const now = Date.now();
+            const updates = {};
+            
+            // P2P Cycle Logic (Queue System)
+            const queueRef = ref(db, 'queues/' + bot.level);
+            const lastBuyerSnap = await get(queueRef);
+            
+            if(lastBuyerSnap.exists()){
+                const lastData = lastBuyerSnap.val();
+                updates[`users/${lastData.uid}/myBots/${lastData.botId}/nextBuyerFound`] = true;
+                updates[`users/${lastData.uid}/myBots/${lastData.botId}/unlockTime`] = now + (2 * 60 * 60 * 1000); 
+            }
+
+            // ইউজারের ব্যালেন্স কমানো এবং বট অ্যাড করা
+            updates[`users/${session}/balance`] = currentBalance - bot.price;
+            updates[`users/${session}/myBots/${bId}`] = { 
+                name: bot.name, 
+                daily: bot.daily, 
+                days: bot.days, 
+                level: bot.level,
+                startTime: now, 
+                nextBuyerFound: false,
+                totalProfit: 0,
+                status: "Running"
+            };
+
+            try {
+                await update(ref(db), updates);
+                await set(queueRef, { uid: session, botId: bId });
+                alert("সাফল্যের সাথে বটটি কেনা হয়েছে!");
+                window.location.href = "dashboard.html";
+            } catch (err) {
+                alert("একটি সমস্যা হয়েছে: " + err.message);
+            }
+        }
+    }
+</script>
+</body>
+</html>
