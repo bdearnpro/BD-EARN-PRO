@@ -63,7 +63,6 @@
 
     if(!session) window.location.href = "index.html";
 
-    // --- ১. ইউজার ডাটা এবং রেফার চেক ---
     onValue(ref(db, 'users/' + session), async (uSnap) => {
         const u = uSnap.val() || {};
         document.getElementById('mainBal').innerText = "৳ " + (u.balance || 0).toFixed(2);
@@ -75,7 +74,6 @@
         });
         document.getElementById('refCountText').innerText = "রেফার করা সদস্য: " + myRefCount + " জন";
 
-        // --- ২. বট মার্কেট রেন্ডার ---
         onValue(ref(db, 'mining_bots'), (bSnap) => {
             const market = document.getElementById('botMarket');
             market.innerHTML = "";
@@ -92,14 +90,16 @@
                     ${reqRefer > 0 ? `<span class="req-tag">প্রয়োজন ${reqRefer} রেফার</span>` : ''}
                     <h3>${bot.name}</h3>
                     <h2 style="color:var(--gold)">৳ ${bot.price}</h2>
-                    <p style="font-size:13px; color:#94a3b8;">লেভেল: ${bot.level} | দৈনিক আয়: ৳${bot.daily}</p>
+                    <p style="font-size:13px; color:#94a3b8;">
+                        লেভেল: ${bot.level} | দৈনিক আয়: ৳${bot.daily} <br>
+                        <b>মেয়াদ: ${bot.days || 0} দিন</b>
+                    </p>
                     <button class="buy-btn ${isOwned ? 'owned-btn' : ''}" id="btn-${bId}">
                         ${isOwned ? 'ড্যাশবোর্ড দেখুন' : 'বট কিনুন'}
                     </button>
                 `;
                 market.appendChild(botCard);
 
-                // বাটনে ক্লিক হ্যান্ডলার
                 document.getElementById(`btn-${bId}`).onclick = () => {
                     handleAction(bId, bot, isOwned, myRefCount, u.balance);
                 };
@@ -107,32 +107,26 @@
         });
     });
 
-    // --- ৩. বট কেনা বা ড্যাশবোর্ডে যাওয়ার ফাংশন ---
     async function handleAction(bId, bot, isOwned, currentRef, currentBalance) {
-        // যদি কেনা থাকে, সরাসরি ড্যাশবোর্ডে পাঠাবে
         if(isOwned) {
             window.location.href = 'dashboard.html';
             return;
         }
 
-        // রেফার শর্ত চেক
         if(currentRef < bot.reqRefer) {
             alert(`দুঃখিত! এই বটটি কিনতে কমপক্ষে ${bot.reqRefer} টি রেফার লাগবে। আপনার আছে ${currentRef} টি।`);
             return;
         }
 
-        // ব্যালেন্স চেক
         if(currentBalance < bot.price) {
-            alert("আপনার ব্যালেন্স নেই! দয়া করে রিচার্জ করুন।");
+            alert("আপনার ব্যালেন্স নেই! দয়া করে রিচার্জ করুন।");
             return;
         }
 
-        // কেনা কনফার্মেশন
         if(confirm(`${bot.name} কিনতে চান? আপনার ব্যালেন্স থেকে ৳${bot.price} কাটা হবে।`)) {
             const now = Date.now();
             const updates = {};
             
-            // P2P Cycle Logic (Queue System)
             const queueRef = ref(db, 'queues/' + bot.level);
             const lastBuyerSnap = await get(queueRef);
             
@@ -142,7 +136,6 @@
                 updates[`users/${lastData.uid}/myBots/${lastData.botId}/unlockTime`] = now + (2 * 60 * 60 * 1000); 
             }
 
-            // ইউজারের ব্যালেন্স কমানো এবং বট অ্যাড করা
             updates[`users/${session}/balance`] = currentBalance - bot.price;
             updates[`users/${session}/myBots/${bId}`] = { 
                 name: bot.name, 
@@ -158,10 +151,10 @@
             try {
                 await update(ref(db), updates);
                 await set(queueRef, { uid: session, botId: bId });
-                alert("সাফল্যের সাথে বটটি কেনা হয়েছে!");
+                alert("সাফল্যের সাথে বটটি কেনা হয়েছে!");
                 window.location.href = "dashboard.html";
             } catch (err) {
-                alert("একটি সমস্যা হয়েছে: " + err.message);
+                alert("একটি সমস্যা হয়েছে: " + err.message);
             }
         }
     }
