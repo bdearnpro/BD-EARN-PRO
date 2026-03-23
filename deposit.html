@@ -78,7 +78,7 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const session = localStorage.getItem('session'); // ইউজারের UID (Firebase UID)
+    const session = localStorage.getItem('session'); 
 
     if(!session) window.location.href = 'index.html';
 
@@ -92,47 +92,46 @@
         }
     });
 
-    // ২. ডিপোজিট সাবমিট করা (পেন্ডিং চেক সহ)
+    // ২. ডিপোজিট সাবমিট করা
     document.getElementById('subBtn').onclick = async () => {
         const amt = parseInt(document.getElementById('amount').value);
         const trxID = document.getElementById('trx').value.trim();
         const subBtn = document.getElementById('subBtn');
 
         if(isNaN(amt) || amt < 50 || trxID.length < 5) {
-            return alert("সঠিক পরিমাণ (মিনিমাম ৫০৳) ও TrxID দিন!");
+            return alert("সঠিক পরিমাণ ও TrxID দিন!");
         }
 
         subBtn.innerText = "চেক করা হচ্ছে...";
         subBtn.disabled = true;
 
         try {
-            // চেক করা হচ্ছে কোনো রিকোয়েস্ট পেন্ডিং আছে কিনা
             const depSnap = await get(ref(db, 'depositRequests'));
-            let hasPending = false;
+            let myHasPending = false;
             
             if(depSnap.exists()) {
                 const requests = depSnap.val();
                 for(let key in requests) {
                     if(requests[key].uid === session && requests[key].status === "pending") {
-                        hasPending = true;
-                        break;
+                        myHasPending = true;
+                        break; 
                     }
                 }
             }
 
-            if(hasPending) {
-                alert("আপনার একটি ডিপোজিট রিকোয়েস্ট অলরেডি পেন্ডিং আছে! সেটি শেষ না হওয়া পর্যন্ত নতুন রিকোয়েস্ট দিতে পারবেন না।");
+            if(myHasPending) {
+                alert("আপনার একটি ডিপোজিট রিকোয়েস্ট অলরেডি পেন্ডিং আছে!");
                 subBtn.innerText = "সাবমিট করুন";
                 subBtn.disabled = false;
                 return;
             }
 
-            // নতুন রিকোয়েস্ট সাবমিট
+            // নতুন রিকোয়েস্ট সাবমিট (অ্যাডমিন প্যানেলের সাথে সামঞ্জস্য রেখে কি-গুলো পরিবর্তন করা হয়েছে)
             const newDepoRef = push(ref(db, 'depositRequests'));
             await set(newDepoRef, {
-                uid: session, // অ্যাডমিন প্যানেলের জন্য মাস্ট
-                userPhone: uPhone,
-                userName: uName,
+                uid: session, 
+                phone: uPhone,     // অ্যাডমিন প্যানেল 'phone' খুঁজছে
+                userName: uName,   // অ্যাডমিন প্যানেল 'userName' বা 'phone' খুঁজছে
                 amount: amt,
                 trx: trxID,
                 status: "pending",
@@ -146,21 +145,21 @@
             subBtn.disabled = false;
 
         } catch (err) {
-            alert("ত্রুটি হয়েছে! আবার চেষ্টা করুন।");
+            alert("ত্রুটি হয়েছে! আবার চেষ্টা করুন।");
             subBtn.innerText = "সাবমিট করুন";
             subBtn.disabled = false;
         }
     };
 
-    // ৩. ইউজারের নিজের লিস্ট দেখানো (UID দিয়ে ফিল্টার)
+    // ৩. ইউজারের নিজের লিস্ট দেখানো
     onValue(ref(db, 'depositRequests'), (snap) => {
         const body = document.getElementById('historyBody');
-        body.innerHTML = "";
+        body.innerHTML = ""; 
+        
         if(!snap.exists()) return;
 
         snap.forEach(child => {
             const data = child.val();
-            // ইউজারের UID দিয়ে ডাটা ফিল্টার
             if(data.uid === session) {
                 const statusText = data.status === 'pending' ? 'Pending' : 'Success';
                 const row = `<tr>
@@ -168,7 +167,7 @@
                     <td>৳${data.amount}</td>
                     <td class="status-${data.status}">${statusText}</td>
                 </tr>`;
-                body.innerHTML = row + body.innerHTML;
+                body.insertAdjacentHTML('afterbegin', row);
             }
         });
     });
